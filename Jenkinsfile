@@ -1,8 +1,8 @@
 def appName = "birthday-paradox"
 def replicas = "1"
-def devProject = // TODO: Your dev project name goes here
-def testProject = // TODO: Your test project name goes here
-def prodProject = // TODO: Your prod project name goes here
+def devProject = ironheart-angel-dev
+def testProject = ironheart-angel-test
+def prodProject = ironheart-angel-prod
 
 def skopeoToken
 def imageTag
@@ -30,7 +30,6 @@ def deployApplication(def appName, def imageTag, def project, def replicas) {
         }
     }
 }
-
 pipeline {
     agent { label "maven" }
     stages {
@@ -48,8 +47,7 @@ pipeline {
         }
         stage("Build & Test") {
             steps {
-                // TODO: Build, Test, and Package birthday-paradox using Maven
-                sh "# TODO: Maven command goes here"
+                sh "mvn clean package"
             }
         }
         stage("Create Image") {
@@ -58,11 +56,8 @@ pipeline {
                     openshift.withCluster() {
                         openshift.withProject(devProject) {
                             dir("openshift") {
-                                /* TODO: Process and Apply the build.yaml OpenShift template. 
-                                **       This template will create the birthday-paradox BuildConfig and ImageStream
-                                **       There is a similar example for this in the deployApplication() function at the top of this file. Reference that function but write your implementation here.
-                                **       Be sure to look at the openshift/build.yaml file to check what parameters the template requires
-                                */
+                                def result = openshift.process(readFile(file:"build.yaml"), "-p", "APPLICATION_NAME=${appName}", "-p", "IMAGE_TAG=${imageTag}")
+                                openshift.apply(result)
                             }
                             dir("target") {
                                 openshift.selector("bc", appName).startBuild("--from-file=${appName}-${imageTag}.jar").logs("-f")
@@ -75,10 +70,7 @@ pipeline {
         stage("Deploy Application to Dev") {
             steps {
                 script {
-                    /*
-                    ** TODO: Use the deployApplication() function, defined above, to deploy birthday-paradox to Dev
-                    **       Be sure to use the parameters that have already been defined in the pipeline.
-                    */
+                    deployApplication(appName, imageTag, devProject, replicas)
                 }
             }
         }
@@ -93,10 +85,7 @@ pipeline {
         stage("Deploy Application to Test") {
             steps {
                 script {
-                    /*
-                    ** TODO: Use the deployApplication() function, defined above, to deploy birthday-paradox to Test
-                    **       Be sure to use the parameters that have already been defined in the pipeline.
-                    */
+                    deployApplication(appName, imageTag, testProject, replicas)
                 }
             }
         }
@@ -116,10 +105,7 @@ pipeline {
         stage("Deploy Application to Prod") {
             steps {
                 script {
-                    /*
-                    ** TODO: Use the deployApplication() function, defined above, to deploy birthday-paradox to Prod
-                    ** Be sure to use the parameters that have already been defined in the pipeline.
-                    */
+                    deployApplication(appName, imageTag, prodProject, replicas)
                 }
             }
         }
